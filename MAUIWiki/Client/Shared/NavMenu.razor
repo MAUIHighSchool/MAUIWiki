@@ -1,0 +1,154 @@
+﻿@inject IArticleService ArticleService
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Wiki</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+
+        <FluentAccordion>
+
+            <FluentAccordionItem Heading="">
+                <a Slot="start" class="nav-title" href="">HOME
+                </a>
+                @if (articleList == null)
+                {
+                    <p><em>Loading...</em></p>
+                }
+                else
+                {
+                    @foreach (var ar in HomeList)
+                    {
+                        <div class="anchor-hidden">
+                        <a class="navbar-anchor" href=@($"/{ar.Id}")>@ar.Title</a>
+                        </div>
+                    }
+                }
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="">
+                <a Slot="start" class="nav-title" href="youtube">YouTube
+                </a>
+                @if (articleList == null)
+                {
+                    <p><em>Loading...</em></p>
+                }
+                else
+                {
+                    @foreach (var ar in YoutubeList)
+                    {
+                        <div class="anchor-hidden">
+                        <a class="navbar-anchor" href=@($"youtube/{ar.Id}")>@ar.Title</a>
+                        </div>
+                    }
+                }
+
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="">
+                <a Slot="start" class="nav-title" href="tips">Tips
+                </a>
+                @if (articleList == null)
+                {
+                    <p><em>Loading...</em></p>
+                }
+                else
+                {
+                    @foreach (var ar in TipsList)
+                    {
+                        <div class="anchor-hidden">
+                        <a class="navbar-anchor" href=@($"tips/{ar.Id}")>@ar.Title</a>
+                        </div>
+                    }
+                }
+
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="">
+                <a Slot="start" class="nav-title" href="library">LIBRARY
+                </a>
+                @if (articleList == null)
+                {
+                    <p><em>Loading...</em></p>
+                }
+                else
+                {
+                    @foreach (var ar in LibraryList)
+                    {
+                        <div class="anchor-hidden">
+                        <a class="navbar-anchor" href=@($"library/{ar.Id}")>@ar.Title</a>
+                        </div>
+                    }
+                }
+
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="">
+                <a Slot="start" class="nav-title" href="bbs">BBS
+                </a>
+                @if (articleList == null)
+                {
+                    <p><em>Loading...</em></p>
+                }
+                else
+                {
+                    @foreach (var ar in BBSList)
+                    {
+                        <div class="anchor-hidden">
+                        <a class="navbar-anchor" href=@($"bbs/{ar.Id}")>@ar.Title</a>
+                        </div>
+                    }
+                }
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="">
+                <a Slot="start" class="nav-title" href="usecase">UseCase
+                </a>
+                @if (articleList == null)
+                {
+                    <p><em>Loading...</em></p>
+                }
+                else
+                {
+                    @foreach (var ar in UseCaseList)
+                    {
+                        <div class="anchor-hidden">
+                        <a class="navbar-anchor" href=@($"usecase/{ar.Id}")>@ar.Title</a>
+                        </div>
+                    }
+                }
+            </FluentAccordionItem>
+        </FluentAccordion>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+    private List<Article>? articleList;
+    private List<Article>? HomeList;
+    private List<Article>? YoutubeList;
+    private List<Article>? TipsList;
+    private List<Article>? LibraryList;
+    private List<Article>? BBSList;
+    private List<Article>? UseCaseList;
+    protected override async Task OnInitializedAsync()
+    {
+        articleList = await ArticleService.GetArticlesList();
+        HomeList = articleList.Where(x => x.NameId == "Home").ToList();
+        YoutubeList = articleList.Where(x => x.NameId == "Youtube").ToList();
+        TipsList = articleList.Where(x => x.NameId == "Tips").ToList();
+        LibraryList = articleList.Where(x => x.NameId == "Library").ToList();
+        BBSList = articleList.Where(x => x.NameId == "BBS").ToList();
+        UseCaseList = articleList.Where(x => x.NameId == "UseCase").ToList();
+    }
+}
+
+
