@@ -1,0 +1,147 @@
+﻿@page "/youtube"
+@inject IArticleService ArticleService
+@inject NavigationManager NavHelper
+@inherits MarkdownEditorBase
+<PageTitle>YouTube</PageTitle>
+
+<h1 class="h1-title">YouTube</h1>
+
+<p>.NET MAUI HighSchoolのYoutubeチャンネルを紹介します。</p>
+<div align="right">
+
+    <FluentTextField @bind-Value=@searchWord Placeholder="検索ワード"></FluentTextField>
+
+    <FluentButton class="btn-top" Appearance="Appearance.Accent" @onclick=OnWordSearch>検索</FluentButton>
+
+    <FluentCombobox Id="combobox" Value="comboboxvalue" ValueChanged="((string combo) => ListChange(combo))" Placeholder="並び替え">
+        <FluentOption>新着順:投稿日</FluentOption>
+        <FluentOption>古い順:投稿日</FluentOption>
+        <FluentOption>新着順:更新日</FluentOption>
+        <FluentOption>古い順:更新日</FluentOption>
+    </FluentCombobox>
+</div>
+<div align="right">
+    <FluentButton @onclick="OnOpenModalParameterButtonClick" Appearance="Appearance.Accent">新規作成</FluentButton>
+</div>
+<div id="ArticleList">
+    @if (artiList == null)
+    {
+        <p><em>Loading...</em></p>
+        <FluentProgressRing class="progress-ring" style=""></FluentProgressRing>
+    }
+    else
+    {
+        @foreach (var ar in artiList)
+        {
+                <div style="padding:8px">
+                    <a class="cardlink" href=@($"youtube/{ar.Id}")>
+                    <FluentCard class="articlecard">
+                        <h2>@ar.Title</h2>
+                        <div class="article-content">
+                            @(Markdig.Markdown.ToPlainText(ar.Content))
+                        </div>
+                        <div>
+                        <div align="right">
+                            <p><small>投稿日:@ar.CreateDate</small></p>
+                            <p><small>更新日:@ar.UpdateDate</small></p>
+                        </div>
+                        </div>
+                    </FluentCard>
+                    </a>
+                </div>
+        }
+    }
+</div>
+
+
+
+@*ダイアログ*@
+<FluentDialog class="fluent-diarog" Hidden="ModalHidden" AriaLabel="Simple dialog" Modal=true>
+    <h2>New Article</h2>
+    <FluentTextField class="textfield-title" Required="true" Appearance="Appearance.Outline" Placeholder="Title" @bind-Value="@article.Title"></FluentTextField>
+    <FluentTabs>
+        <FluentTab>Write</FluentTab>
+        <FluentTab>Preview</FluentTab>
+        <FluentTabPanel>
+            <FluentTextArea Appearance="Appearance.Outline" Placeholder="Content" Required="true" @bind-Value="@ArtBody" style="width:100%;font-size:16px"></FluentTextArea>
+        </FluentTabPanel>
+        <FluentTabPanel>
+            <div class="preview">
+                @((MarkupString)Preview)
+            </div>
+        </FluentTabPanel>
+    </FluentTabs>
+
+    <div align="right">
+    <ul>
+    <FluentButton @onclick="OnCloseModalParameterButtonClick" Appearance="Appearance.Accent">キャンセル</FluentButton>
+    <FluentButton @onclick="OnArticlePost" Appearance="Appearance.Accent">登録</FluentButton>
+    </ul>
+    </div>
+</FluentDialog>
+
+@code {
+    private Article article = new Article();
+
+    //GetArticleList
+    private List<Article>? articleList;
+    private List<Article>? artiList;
+    protected override async Task OnInitializedAsync()
+    {
+        articleList = await ArticleService.GetArticlesList();
+        articleList = articleList.Where(x => x.NameId == "Youtube").OrderBy(x => x.Id).ToList();
+        artiList = articleList;
+        Console.Write(articleList);
+    }
+
+    private async Task OnArticlePost()
+    {
+        try
+        {
+            article.NameId = "Youtube";
+            article.Content = ArtBody;
+            var newId = await ArticleService.PostArticle(article);
+            NavHelper.NavigateTo($"youtube/{newId}");
+        }
+        catch (AccessTokenNotAvailableException e)
+        {
+            e.Redirect();
+        }
+    }
+
+    //ダイアログ開閉
+    public bool ModalHidden { get; set; } = true;
+    private void OnOpenModalParameterButtonClick() => ModalHidden = false;
+    private void OnCloseModalParameterButtonClick() => ModalHidden = true;
+
+
+    string? comboboxvalue { get; set; }
+    //並び替え処理
+    private void ListChange(string combo)
+    {
+        if (combo == "新着順:投稿日")
+        {
+            artiList = artiList.OrderByDescending(x => x.CreateDate).ToList();
+        }
+        else if (combo == "古い順:投稿日")
+        {
+            artiList = artiList.OrderBy(x => x.CreateDate).ToList();
+        }
+        else if (combo == "新着順:更新日")
+        {
+            artiList = artiList.OrderByDescending(x => x.UpdateDate).ToList();
+        }
+        else
+        {
+            artiList = artiList.OrderBy(x => x.UpdateDate).ToList();
+        }
+        comboboxvalue = combo;
+    }
+
+    //記事検索
+    string searchWord { get; set; }
+    private void OnWordSearch()
+    {
+        artiList = articleList.Where(x => x.Title.Contains(searchWord) || x.Content.Contains(searchWord)).ToList();
+    }
+}

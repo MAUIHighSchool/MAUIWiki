@@ -1,0 +1,170 @@
+﻿@page "/youtube/{number:int}"
+@inject IArticleService ArticleService
+@inject ICommentService CommentService
+@inject NavigationManager NavHelper
+@inject IJSRuntime JSRuntime
+@inherits MarkdownEditorBase
+
+<PageTitle>YouTube</PageTitle>
+
+<h1 class="h1-title">@articleModel.Title</h1>
+<div align="right">
+    <FluentButton @onclick="OnOpenModalParameterButtonClick" Appearance="Appearance.Accent">編集</FluentButton>
+</div>
+<div class="div-article">
+    @((MarkupString)Preview)
+</div>
+
+
+<!--コメント-->
+
+<FluentDivider Role="DividerRole.Separator">
+</FluentDivider>
+<div class="block"><p class="script"> Comment:<big class="smallscript">@(commentList?.Count())</big></p></div>
+
+<FluentDivider Role="DividerRole.Separator">
+</FluentDivider>
+@if (commentList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    @foreach (var com in commentList.Select((value,index)=> new {value,index}))
+    {
+        <div style="padding:8px">
+            <FluentCard class="commentcard">
+                <div>@((com.index)+1)_:Name:@com.value.UserName</div>
+                <div class="comment-view">
+                    <small>Comment:</small>
+                </div>
+                <div align="right"><small class="timeend">@com.value.CreateDate</small></div>
+                <div class="separator"></div>
+                <p class="dr-auto">@((MarkupString)Markdig.Markdown.ToHtml(com.value.Comment, pipeline))</p>
+                
+            </FluentCard>
+        </div>
+    }
+}
+
+<!--コメントカード-->
+<FluentCard class="float-card" hidden="@CardHidden">
+    <FluentTextField class="textfield-comment" Appearance="Appearance.Outline" Placeholder="Name" @bind-Value="@commentModel.UserName"></FluentTextField>
+    <FluentTextArea class="txtarea" Appearance="Appearance.Outline" Placeholder="Comment" style="width:100%;" @bind-Value="@commentModel.Comment"></FluentTextArea>
+    <div align="right">
+        <FluentButton Appearance="Appearance.Accent" @onclick="OnCommentPost">登録</FluentButton>
+    </div>
+
+</FluentCard>
+
+<FluentButton class="float-btn" @onclick="OnCommentButtonClick" Appearance="Appearance.Accent">
+    <span class="oi oi-comment-square" aria-hidden="true" style="font-size:large;"></span>
+    :コメント
+</FluentButton>
+
+@*ダイアログ*@
+<FluentDialog class="fluent-diarog" Hidden="ModalHidden" AriaLabel="Simple dialog" Modal=true>
+    <h2>New Article</h2>
+    <FluentTextField Required="true" Appearance="Appearance.Outline" style="width:100%;font-size:24px" Placeholder="Title" @bind-Value="@articleModel.Title"></FluentTextField>
+    <FluentTabs>
+        <FluentTab>Write</FluentTab>
+        <FluentTab>Preview</FluentTab>
+        <FluentTabPanel>
+            <FluentTextArea Appearance="Appearance.Outline" Placeholder="Content" Required="true" @bind-Value="@ArtBody" style="width:100%;font-size:16px"></FluentTextArea>
+        </FluentTabPanel>
+        <FluentTabPanel>
+            <div class="preview">
+                @((MarkupString)Preview)
+            </div>
+        </FluentTabPanel>
+    </FluentTabs>
+    <div align="right">
+        <ul>
+            <FluentButton @onclick="OnCloseModalParameterButtonClick" Appearance="Appearance.Accent">キャンセル</FluentButton>
+            <FluentButton @onclick="OnArticlePut" Appearance="Appearance.Accent">登録</FluentButton>
+        </ul>
+    </div>
+</FluentDialog>
+
+@code {
+    [Parameter]
+    public int number { get; set; }
+
+    private Article articleModel = new Article();
+    private CommentContent commentModel = new CommentContent();
+
+    //Get
+    private List<CommentContent>? commentList;
+    protected override async Task OnParametersSetAsync()
+    {
+        //Article
+        articleModel = await ArticleService.GetArticle(number);
+        ArtBody = articleModel.Content;
+        //Comment
+        commentList = await CommentService.GetCommentList(number);
+    }
+
+    //ArticlePut
+    private async Task OnArticlePut()
+    {
+        try
+        {
+            articleModel.NameId = "Youtube";
+            articleModel.Content = ArtBody;
+            await ArticleService.PutArticle(number, articleModel);
+            NavHelper.NavigateTo($"youtube");
+        }
+        catch (AccessTokenNotAvailableException e)
+        {
+            e.Redirect();
+        }
+    }
+    //CommentPost
+    private async Task OnCommentPost()
+    {
+        try
+        {
+            if(commentModel.UserName==null)
+            {
+                commentModel.UserName = "名無し";
+            }
+            commentModel.Comment = commentModel.Comment.Replace(Environment.NewLine, "<br>");
+            commentModel.Number = number;
+            await CommentService.PostComment(commentModel);
+            NavHelper.NavigateTo(NavHelper.Uri, true);
+
+        }
+        catch (AccessTokenNotAvailableException e)
+        {
+            e.Redirect();
+        }
+    }
+
+    //ダイアログ開閉
+    public bool ModalHidden { get; set; } = true;
+    private void OnOpenModalParameterButtonClick() => ModalHidden = false;
+    private void OnCloseModalParameterButtonClick() => ModalHidden = true;
+
+    //コメントカード開閉
+    public bool CardHidden { get; set; } = true;
+    private void OnCommentButtonClick()
+    {
+        if (CardHidden == true)
+        {
+            CardHidden = false;
+            return;
+        }
+        else
+        {
+            CardHidden = true;
+            return;
+        }
+    }
+
+    //Prism.js使用
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JSRuntime.InvokeVoidAsync("initPrism");
+    }
+
+}
