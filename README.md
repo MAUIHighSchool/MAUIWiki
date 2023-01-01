@@ -1,0 +1,2 @@
+# MAUIWiki
+.NET MAUIのためのWikiアプリになります。
